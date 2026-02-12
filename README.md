@@ -1,66 +1,93 @@
-# Amazon S3 Bucket Manager 🪣
+# AWS S3 FUSE Mount 🚀📦
 
-A comprehensive bash script for managing Amazon S3 buckets on Linux servers with FTP integration.
+Readme: [English](README.md)
 
-# About 📝
-This tool automates the process of mounting and managing S3 buckets as local filesystems using s3fs-fuse, with additional FTP server integration for easy remote access.
+Este repositório fornece um script automatizado e um guia prático para montar buckets do Amazon S3 como sistemas de arquivos locais no Linux, utilizando o s3fs-fuse. Transforme seu armazenamento em nuvem em um diretório local acessível.
 
-- Author 👨‍💻
-- Percio Andrade
-- Email: percio@zendev.com.br
-- Website: Zendev : https://zendev.com.br
+<img src="https://github.com/user-attachments/assets/be8fea2b-bf54-4536-a2e7-0cccd91c8d8c" width="700">
 
-# Features ✨
-- 🔧 Automated FUSE and S3FS installation
-- 📦 S3 bucket mounting and management
-- 📡 FTP server integration (vsftpd)
-- 📊 Detailed operation logging
-- 👥 User management and permissions
-- 🔄 Automatic fstab configuration
+![License](https://img.shields.io/github/license/sr00t3d/amazon-fuse-s3)
+![Shell Script](https://img.shields.io/badge/shell-script-green)
 
-# Requirements 📋
-- 🔑 Root/sudo access
-- ☁️ AWS credentials configured
-- 🌐 Internet connectivity
-- 🛠️ Basic system utilities:
-  - curl
-  - wget
-  - git
+## ✨ Funcionalidades
 
-# Installation 💿
+- **Montagem Automática**: Script para configurar e montar buckets S3 com um único comando.
+- **Persistência**: Instruções detalhadas para configurar o arquivo /etc/fstab e garantir que o bucket seja montado automaticamente no boot.
+- **Gestão de Permissões**: Configuração segura de credenciais via arquivo .passwd-s3fs.
+- **Compatibilidade**: Testado em distribuições baseadas em Debian e Ubuntu.
+- **Integração de Backup**: Ideal para integrar o S3 como destino de backups de logs ou dump de bancos de dados.
+
+## 🛠️ Pré-requisitos
+
+- Uma conta ativa na **AWS** com um **bucket S3 criado**.
+- Chaves de acesso (**Access Key ID** e **Secret Access Key**) com permissões de **leitura/escrita** no bucket.
+- Instalação do pacote `s3fs`.
+
+## 🚀 Instalação
+
+1 **Clone o Repositório**
+
 ```bash
 git clone https://github.com/percioandrade/amazon-fuse-s3
 cd s3bucket
 chmod +x s3bucket
 ```
 
-# Usage 🚀
+2 **Instale o s3fs**:
+
 ```bash
-# Install FUSE and S3FS components
-./s3bucket -i
+sudo apt update && sudo apt install s3fs -y
+```
+3 **Configure suas credenciais**:
 
-# Create and mount a new S3 bucket
-./s3bucket -e
+```bash
+echo ACCESS_KEY_ID:SECRET_ACCESS_KEY > ~/.passwd-s3fs chmod 600 ~/.passwd-s3fs
+```
 
-# Remove an existing bucket
-./s3bucket -r
+4 **Monte o bucket**:
+- Crie o ponto de montagem e execute:
 
-# Install and configure FTP server
-./s3bucket -ftp
+```bash
+mkdir /mnt/meu-s3 s3fs nome-do-bucket /mnt/meu-s3 -o passwd_file=~/.passwd-s3fs
+```
 
-# Display help information
+## 🚀 Como Usar
+
+- Instala o `fuse` e o `s3fs`
+
+```bash
+s3bucket -i
+```
+- Cria e monta um novo bucket no sistema
+
+```bash
+s3bucket -e
+```
+
+- Remove um backup do sistema
+
+```bash
+s3bucket -r
+```
+- Instala o servidor de FTP
+
+```bash
+s3bucket -ftp
+```
+
+- Mostra a ajuda do script
+
+```bash
 ./s3bucket -h
 ```
 
-# Configuration ⚙️
-- AWS credentials are stored in `~/.passwd-s3fs`
-- FTP configuration in `/etc/vsftpd/vsftpd.conf`
-- Mount points configured in `/etc/fstab`
-
-# Logs 📝
-- System-wide logs in `/var/log/buckets3.log`
-- User-specific logs in `$USERPATH/$USER/buckets3-$USER.log`
-- Master log file in `$USERPATH/buckets3.log`
+# Arquivos de configuração ⚙️
+- As credenciais da AWS são armazenadas em `~/.passwd-s3fs`
+- Configuração de FTP em `/etc/vsftpd/vsftpd.conf`
+- Pontos de montagem configurados em `/etc/fstab`
+- Logs de todo o sistema em `/var/log/buckets3.log`
+- Logs específicos do usuário em `$USERPATH/$USER/buckets3-$USER.log`
+- Arquivo de log mestre em `$USERPATH/buckets3.log`
 
 # Screens
 <img src="http://i.imgur.com/yPDtfQL.png" />
@@ -73,14 +100,17 @@ chmod +x s3bucket
 
 <img src="http://i.imgur.com/R35QWtp.png" />
 
-# Support 💬
-For support, please contact: support@zendev.com.br
+## ⚠️ Disclaimer
 
-# Notes 📌
-- Always backup your data before mounting new buckets
-- Keep AWS credentials secure
-- Monitor system logs for any mounting issues
-- Ensure proper file permissions
+> [!WARNING]
+> Este software é fornecido "tal como está". Certifique-se sempre executar em ambiente de testes antes. O autor não se responsabiliza por qualquer uso indevido, consequências legais ou impacto nos dados causados ​​por esta ferramenta.
 
-# License 📄
-This project is licensed under the GNU General Public License v2.0
+## 📚 Tutorial Detalhado
+
+Para um guia completo, passo a passo, sobre como importar os arquivos gerados para o Thunderbird e solucionar problemas comuns de migração, confira meu artigo completo:
+
+👉 [**Create a Bucket for AWSS3 in your server**](https://perciocastelo.com.br/blog/create-a-bucket-for-aswss3-in-your-server.html)
+
+## Licença 📄
+
+Este projeto está licenciado sob a **GNU General Public License v3.0**. Consulte o arquivo [LICENSE](LICENSE) para mais detalhes.
