@@ -1,326 +1,371 @@
 #!/bin/bash
-##################################################################
-# Author  : Percio Andrade
-# Email   : perciocastelo@gmail.com
-# Info    : Shell script to install and manage S3 on server
-# Version : 2.3
-##################################################################
+################################################################################
+#                                                                              #
+#   PROJECT: S3 Fuse & VSFTPD Manager                                          #
+#   VERSION: 3.0.0                                                             #
+#                                                                              #
+#   AUTHOR:  Percio Andrade                                                    #
+#   CONTACT: percio@evolya.com.br                                              #
+#   WEB:     https://perciocastelo.com.br | contato@perciocastelo.com.br       #
+#                                                                              #
+#   INFO:                                                                      #
+#   Install s3fs-fuse, create buckets/users and setup VSFTPD.                  #
+#                                                                              #
+################################################################################
 
-V="2.3"
+# --- CONFIGURATION ---
+SRC_PATH="/usr/local/src"
+BASE_HOME="/home"
+FUSE_LIB_URL="https://github.com/libfuse/libfuse/releases/download/fuse-2.9.9/fuse-2.9.9.tar.gz"
+LOG_GLOBAL="/var/log/buckets3.log"
+LOG_MASTER="$BASE_HOME/buckets3.log"
+# ---------------------
 
-# Define variables for paths and URLs
-srcPath="/usr/local/src"
-LIBFUSE="http://pkgs.fedoraproject.org/repo/pkgs/fuse/fuse-2.9.4.tar.gz/ecb712b5ffc6dffd54f4a405c9b372d8/fuse-2.9.4.tar.gz"
-USERPATH="/home"
+# Detect System Language
+SYSTEM_LANG="${LANG:0:2}"
 
-# Function to display the help message
+if [[ "$SYSTEM_LANG" == "pt" ]]; then
+    # Portuguese Strings
+    MSG_USAGE="Uso: $0 [-i|--install] [-e|--enable] [-r|--remove] [-ftp|--ftp] [-h|--help] [-f|--force]"
+    MSG_ERR_ROOT="ERRO: Este script precisa ser executado como root."
+    MSG_ERR_ARG="ERRO: Por favor, insira pelo menos um argumento."
+    MSG_ERR_EMPTY="ERRO: Valores vazios. Tente novamente."
+    MSG_INSTALL_DEPS="[+] Instalando dependências, aguarde..."
+    MSG_COMPILING="[+] Compilando"
+    MSG_INSTALLED="já está instalado/compilado."
+    MSG_AWS_CONFIG="[!] Configuração AWS necessária."
+    MSG_AWS_LINK="[!] Crie suas chaves em: https://console.aws.amazon.com/iam/"
+    MSG_INSERT_KEY="Insira a AWS Access Key: "
+    MSG_INSERT_SECRET="Insira a AWS Secret Key: "
+    MSG_BUCKET_NAME="Informe o nome do Bucket S3: "
+    MSG_USER_NAME="Informe o usuário do sistema: "
+    MSG_CONFIRM="Proceder? (y/n): "
+    MSG_USER_ADD="[!] Usuário não encontrado. Criando..."
+    MSG_USER_PASS="Defina uma senha para"
+    MSG_MOUNTING="[+] Montando bucket e atualizando fstab..."
+    MSG_CHECK_MOUNT="[!] Verificando montagem..."
+    MSG_MOUNT_OK="[+] Bucket montado com sucesso!"
+    MSG_MOUNT_FAIL="[!] AVISO: Falha ao montar o bucket."
+    MSG_FTP_ENABLE="[+] Habilitando FTP para"
+    MSG_FTP_INSTALL="[!] Instalando VSFTPD..."
+    MSG_REMOVE_TITLE="[!] Processo de remoção de bucket"
+    MSG_REMOVE_USER="Insira o usuário para remover o bucket: "
+    MSG_REMOVE_PATH="Insira o caminho do Bucket (ex: /home/user/bucket): "
+    MSG_REMOVE_FOUND="[+] Bucket encontrado e desmontado."
+    MSG_REMOVE_CLEAN="[+] Logs e Fstab limpos."
+    MSG_DONE="[+] Processo concluído."
+else
+    # English Strings (Default)
+    MSG_USAGE="Usage: $0 [-i|--install] [-e|--enable] [-r|--remove] [-ftp|--ftp] [-h|--help] [-f|--force]"
+    MSG_ERR_ROOT="ERROR: This script must be run as root."
+    MSG_ERR_ARG="ERROR: Please insert at least one argument."
+    MSG_ERR_EMPTY="ERROR: Empty values. Try again."
+    MSG_INSTALL_DEPS="[+] Installing dependencies, please wait..."
+    MSG_COMPILING="[+] Compiling"
+    MSG_INSTALLED="is already installed/compiled."
+    MSG_AWS_CONFIG="[!] AWS Configuration required."
+    MSG_AWS_LINK="[!] Create keys at: https://console.aws.amazon.com/iam/"
+    MSG_INSERT_KEY="Insert AWS Access Key: "
+    MSG_INSERT_SECRET="Insert AWS Secret Key: "
+    MSG_BUCKET_NAME="Enter S3 Bucket Name: "
+    MSG_USER_NAME="Enter System Username: "
+    MSG_CONFIRM="Proceed? (y/n): "
+    MSG_USER_ADD="[!] User not found. Creating..."
+    MSG_USER_PASS="Set password for"
+    MSG_MOUNTING="[+] Mounting bucket and updating fstab..."
+    MSG_CHECK_MOUNT="[!] Checking mount status..."
+    MSG_MOUNT_OK="[+] Bucket mounted successfully!"
+    MSG_MOUNT_FAIL="[!] WARNING: Failed to mount bucket."
+    MSG_FTP_ENABLE="[+] Enabling FTP for"
+    MSG_FTP_INSTALL="[!] Installing VSFTPD..."
+    MSG_REMOVE_TITLE="[!] Bucket Removal Process"
+    MSG_REMOVE_USER="Enter username to remove bucket: "
+    MSG_REMOVE_PATH="Enter Bucket Path (e.g., /home/user/bucket): "
+    MSG_REMOVE_FOUND="[+] Bucket found and unmounted."
+    MSG_REMOVE_CLEAN="[+] Logs and Fstab cleaned."
+    MSG_DONE="[+] Process completed."
+fi
+
+# Help Function
 function display_help() {
     cat <<-EOF
 
-Usage: $0 [-i|--install] [-e|--enable] [-r|--remove] [-ftp|--ftp] [-h|--help] [-f|--force]
+$MSG_USAGE
 
 Options:
-        -i, --install     Install FuseS3 and FuseLib
-        -e, --enable      Create bucket on the server
-        -r, --remove      Remove bucket from the server
-        -ftp, --ftp       Install VSTP FTP server
-        -h, --help        Display this help message
-        -f, --force       Use with 'install' to reinstall all libraries
+    -i, --install      Install FuseS3 and dependencies
+    -e, --enable       Create user and mount S3 bucket
+    -r, --remove       Unmount and remove bucket config
+    -ftp, --ftp        Install and configure VSFTPD
+    -h, --help         Display this help message
+    -f, --force        Force reinstall of libraries
 EOF
 }
 
-# Check for help option
-if [[ $1 == "-h" ]] || [[ $1 == "--help" ]]; then
+# Check Root
+if [[ $EUID -ne 0 ]]; then
+   echo "$MSG_ERR_ROOT"
+   exit 1
+fi
+
+# Check Arguments
+if [[ -z "$1" ]]; then
+    echo "$MSG_ERR_ARG"
+    display_help
+    exit 1
+fi
+
+if [[ "$1" == "-h" ]] || [[ "$1" == "--help" ]]; then
     display_help
     exit 0
 fi
 
-# Check if no arguments provided
-if [[ -z "$1" ]]; then
-    echo -e "\nError: Please insert at least one argument"
-    echo -e "Use -h or --help to check available commands\n"
-    exit 1
-fi
+# unified Log Function
+function write_log() {
+    local bucket="$1"
+    local user="$2"
+    local path="$3"
+    local date_now=$(date '+%Y-%m-%d %H:%M:%S')
+    local log_entry="DATE: $date_now | BUCKET: $bucket | USER: $user | DIR: $path"
 
-function log_files() {
-    local bucketName="$1"
-    local userName="$2"
-    local userHomePath="$3"
-
-    # Log file for individual user
-    echo -e "DATE: $(date)          BUCKET NAME: $bucketName             USERNAME: $userName         DIR: $userHomePath/$userName/$bucketName\n" >> "$userHomePath/$userName/buckets3-$userName.log"
-    # Master log file for all valid accounts
-    echo -e "DATE: $(date)          BUCKET NAME: $bucketName             USERNAME: $userName         DIR: $userHomePath/$userName/$bucketName\n" >> "$userHomePath/buckets3.log"
-    # Global log file
-    echo -e "DATE: $(date)          BUCKET NAME: $bucketName             USERNAME: $userName         DIR: $userHomePath/$userName/$bucketName\n" >> "/var/log/buckets3.log"
+    # User Log
+    echo "$log_entry" >> "$BASE_HOME/$user/buckets3-$user.log"
+    # Master Log
+    echo "$log_entry" >> "$LOG_MASTER"
+    # Global Log
+    echo "$log_entry" >> "$LOG_GLOBAL"
 }
 
-function create_welcome_file() {
-    local userName="$1"
-    local userHomePath="$2"
-
-    echo "[+] - Creating Welcome File"
-    echo -e "Welcome to your S3 bucket!\n\nThis is a placeholder text. Feel free to customize this welcome message." > "$userHomePath/$userName/readme.txt"
-    echo "[+] - Welcome file created"
-}
-
-# Install function
+# Install Function
 function install_s3fs() {
-    # REMOVE OLD FUSE
-    CHECK_FUSE=$(rpm -qa | grep fuse)
+    local FORCE=$2
 
-    if [[ -n "$CHECK_FUSE" ]]; then
-        yum remove -y fuse fuse-s3fs
-    fi
+    # Update/Install YUM dependencies
+    echo "$MSG_INSTALL_DEPS"
+    yum install -y gcc libstdc++-devel gcc-c++ fuse fuse-devel curl-devel libxml2-devel openssl-devel mailcap git automake make
 
-    # CHECK DEPENDENCIES
-    echo "[+] - Installing Dependencies, please wait..."
-    yum install -y libstdc++-devel curl-devel automake gcc gcc-c++ git libxml2-devel make openssl-devel &> /dev/null
-
-    # COMPILE FUSE
-    if [[ ! -f "/usr/local/lib/libfuse.so" ]] || [[ $2 == "-f" ]] || [[ $2 == "--force" ]]; then
-        echo "[!] - LibFuse not found or force option used, installing..."
-        rm -rf "$srcPath/fuse/"
-        cd "$srcPath" && mkdir fuse && wget "$LIBFUSE" -O fuse.tar.gz && tar -xvf fuse.tar.gz -C fuse/ && cd fuse/fuse* || exit
+    # Compile Fuse (Only if not present or forced)
+    # Note: Modern CentOS 7/8/9 usually prefers 'yum install fuse', but keeping logic as requested.
+    if [[ ! -f "/usr/local/lib/libfuse.so" ]] || [[ "$FORCE" == "-f" ]] || [[ "$FORCE" == "--force" ]]; then
+        echo "$MSG_COMPILING Fuse..."
+        rm -rf "$SRC_PATH/fuse/"
+        mkdir -p "$SRC_PATH/fuse"
+        
+        # Using a more reliable source or relying on yum is better, but here is the manual way:
+        cd "$SRC_PATH"
+        # Download fuse source (updated link logic if needed, using variable)
+        wget "$FUSE_LIB_URL" -O fuse.tar.gz
+        tar -xvf fuse.tar.gz -C fuse --strip-components=1
+        cd fuse
         ./configure --prefix=/usr/local
         make && make install
+        
         export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
         ldconfig
         modprobe fuse
     else
-        echo "[!] - Fuse already compiled"
+        echo "Fuse $MSG_INSTALLED"
     fi
 
-    # CHECK IF SF3-FUSE HAS COMPILED
-    if [[ ! -f "/usr/local/bin/s3fs" ]] || [[ $2 == "-f" ]] || [[ $2 == "--force" ]]; then
-        echo "[!] - S3FS not found or force option used"
-        rm -rf "$srcPath/s3fs-fuse/"
-        cd "$srcPath" && git clone https://github.com/s3fs-fuse/s3fs-fuse.git && cd s3fs-fuse || exit
+    # Compile S3FS
+    if ! command -v s3fs &> /dev/null || [[ "$FORCE" == "-f" ]] || [[ "$FORCE" == "--force" ]]; then
+        echo "$MSG_COMPILING S3FS..."
+        rm -rf "$SRC_PATH/s3fs-fuse/"
+        cd "$SRC_PATH"
+        git clone https://github.com/s3fs-fuse/s3fs-fuse.git
+        cd s3fs-fuse
         ./autogen.sh
         ./configure
-        make
-        make install
+        make && make install
     else
-        echo "[!] - S3FS already compiled"
+        echo "S3FS $MSG_INSTALLED"
     fi
 
-    # ENABLE FUSE S3
-    if ! grep -q "/usr/local/lib/" /etc/ld.so.conf; then
-        echo "/usr/local/lib/" >> /etc/ld.so.conf
+    # Config Loader
+    if ! grep -q "/usr/local/lib" /etc/ld.so.conf; then
+        echo "/usr/local/lib" >> /etc/ld.so.conf
         ldconfig
     fi
 
-    # CONFIGURE S3FS
-    if [[ ! -f "$HOME/.passwd-s3fs" ]] || [[ ! -s "$HOME/.passwd-s3fs" ]]; then
-        echo -e "[!] - You need to create your AWS keys to allow access to s3fuse"
-        echo -e "[!] - You can create keys here: https://console.aws.amazon.com/iam/home?region=sa-east-1#security_credential"
-        echo -e "[!] - Creating configuration file..."
-        echo "[!] - Insert your details"
-        read -rsp "Insert AWS Key: " awsAccessKey
-        echo
-        read -rsp "Insert AWS PrivateKey: " awsPrivateKey
-        echo
-        echo "$awsAccessKey:$awsPrivateKey" > "$HOME/.passwd-s3fs"
-        if [[ -z "$awsAccessKey" ]] || [[ -z "$awsPrivateKey" ]]; then
-            echo "[+] - Values are empty, try again"
+    # AWS Credentials
+    if [[ ! -s "$HOME/.passwd-s3fs" ]]; then
+        echo "$MSG_AWS_CONFIG"
+        echo "$MSG_AWS_LINK"
+        
+        read -r -p "$MSG_INSERT_KEY" awsAccessKey
+        read -r -p "$MSG_INSERT_SECRET" awsSecretKey
+        
+        if [[ -z "$awsAccessKey" ]] || [[ -z "$awsSecretKey" ]]; then
+            echo "$MSG_ERR_EMPTY"
             exit 1
         fi
+        
+        echo "$awsAccessKey:$awsSecretKey" > "$HOME/.passwd-s3fs"
         chmod 600 "$HOME/.passwd-s3fs"
-        echo "user_allow_other" >> /etc/fuse.conf # Enable normal users to access on FTP
-        echo "[+] - S3FS was configured"
+        
+        # Allow non-root users to mount
+        if ! grep -q "user_allow_other" /etc/fuse.conf; then
+            echo "user_allow_other" >> /etc/fuse.conf
+        fi
+        echo "$MSG_DONE"
     else
-        echo "[+] - S3Fuse config already exists at $HOME/.passwd-s3fs, remove this file first if you want to reconfigure"
+        echo "[!] $HOME/.passwd-s3fs exists."
     fi
 }
 
-# Function to create log files
-function log_files() {
-    # Log file for individual user
-    log_user_bucket "$userName" "$bucketName" "$userHomePath/$userName/$bucketName"
-    # Master log file for all valid accounts
-    log_all_buckets "$userName" "$bucketName" "$userHomePath/$userName/$bucketName"
-    # Global log file
-    log_global_bucket "$userName" "$bucketName" "$userHomePath/$userName/$bucketName"
-}
-
-# Function to create a welcome file
-function create_welcome_file() {
-    create_welcome_message "$userHomePath/$userName/readme.txt"
-}
-
-# Enable bucket function
+# Enable Bucket Function
 function enable_bucket() {
-    echo -e "\n-----------------------------------------------------------------"
-    echo "                    S3BUCKET - buckets3"
-    echo -e "-----------------------------------------------------------------\n"
-    read -rp "Inform the bucket name: " bucketName
-    read -rp "Inform the username to install bucket: " userName
+    echo -e "\n--- S3 BUCKET MANAGER ---\n"
+    
+    read -r -p "$MSG_BUCKET_NAME" bucketName
+    read -r -p "$MSG_USER_NAME" userName
 
     if [[ -z "$bucketName" ]] || [[ -z "$userName" ]]; then
-        echo -e "\n[!] - Values are empty, try again\n"
+        echo "$MSG_ERR_EMPTY"
         exit 1
     fi
 
-    echo "[+] - OK, this is all we need. Confirm that the values are correct"
+    echo "-------------------------"
+    echo " BUCKET: $bucketName"
+    echo " USER:   $userName"
+    echo " PATH:   $BASE_HOME/$userName/$bucketName"
+    echo "-------------------------"
 
-    echo -e "|-------------------------------------------------------"
-    echo "| BUCKETNAME: $bucketName"
-    echo "| USERNAME: $userName"
-    echo "| PATH: $userHomePath/$userName/$bucketName"
-    echo -e "|-------------------------------------------------------"
+    read -r -p "$MSG_CONFIRM" CONFIRM
+    [[ "$CONFIRM" != "y" ]] && exit 0
 
-    read -rp "Proceed? (y/n): " CONFIRM
-    if [[ $CONFIRM != "y" ]]; then
-        echo "[!] - Exiting..."
-        exit 0
-    fi
-
-    # CHECK IF USER EXIST
+    # User Management
     if ! id "$userName" &>/dev/null; then
-        echo "[!] - User $userName not found. adding."
-        useradd -d "$userHomePath/$userName" -m "$userName"
-        echo "[!] - The user will be created, please enter a password"
-        read -rsp "Password: " userPassw
-        echo
-        echo "$userName:$userPassw" | chpasswd
-        echo "[+] - Done."
-    else
-        echo "[!] - User $userName already exists"
+        echo "$MSG_USER_ADD"
+        useradd -d "$BASE_HOME/$userName" -m "$userName"
+        echo "$MSG_USER_PASS $userName:"
+        passwd "$userName"
     fi
 
-    # CHECK IF USER HAS HOMEDIR
-    if [[ -d "$userHomePath/$userName" ]]; then
-        echo -e "\n[+] - Homedir for user $userName found"
-        echo "[+] - This script will mountpoint for user in $userHomePath/$userName/$bucketName"
-        echo "[!] - Making the bucket directory"
-    else
-        echo -e "\n[!] - Homedir for user $userName not found."
-        echo -e "\n[!] - Creating directory"
-        mkdir -p "$userHomePath/$userName" && chown "$userName:$userName" "$userHomePath/$userName" && chmod 700 "$userHomePath/$userName"
-        echo "[!] - Making the bucket directory"
+    # Directory Setup
+    USER_PATH="$BASE_HOME/$userName"
+    MOUNT_POINT="$USER_PATH/$bucketName"
+
+    mkdir -p "$MOUNT_POINT"
+    chown "$userName:$userName" "$MOUNT_POINT"
+    chmod 755 "$MOUNT_POINT"
+
+    echo "$MSG_MOUNTING"
+    
+    # Mount
+    /usr/local/bin/s3fs "$bucketName" "$MOUNT_POINT" \
+    -o use_rrs -o allow_other -o default_acl=public-read \
+    -o passwd_file="$HOME/.passwd-s3fs"
+
+    # Fstab Persistence
+    # Check if already in fstab to avoid duplicates
+    if ! grep -q "$MOUNT_POINT" /etc/fstab; then
+        echo "# S3FS for $userName" >> /etc/fstab
+        echo "s3fs#$bucketName $MOUNT_POINT fuse _netdev,allow_other,passwd_file=$HOME/.passwd-s3fs,retries=5 0 0" >> /etc/fstab
     fi
 
-    if [[ -d "$userHomePath/$userName/$bucketName" ]]; then
-        echo "[!] - Bucket for user $userName already exists."
-        echo "[!] - Remove first, after run this script again"
+    # Read-only Home, Write on Bucket (Security best practice for FTP users)
+    chmod 555 "$USER_PATH"
+
+    # Verification
+    echo "$MSG_CHECK_MOUNT"
+    if df -h | grep -q "$MOUNT_POINT"; then
+        echo "$MSG_MOUNT_OK"
+        write_log "$bucketName" "$userName" "$MOUNT_POINT"
+        
+        # Welcome File
+        echo "Welcome to your S3 Storage!" > "$USER_PATH/readme.txt"
+        chown "$userName:$userName" "$USER_PATH/readme.txt"
     else
-        mkdir -p "$userHomePath/$userName/$bucketName"
-        chmod 755 "$userHomePath/$userName/$bucketName"
-        chown "$userName:$userName" "$userHomePath/$userName/$bucketName"
-        echo "[+] - Mounting..."
-        /usr/local/bin/s3fs "$userName" -o use_rrs -o allow_other -o default_acl=public-read "$userHomePath/$userName/$bucketName"
-        echo "[+] - Saving on fstab..."
-        echo "#buckets3 for user $userName on $userHomePath/$userName/$bucketName" >> /etc/fstab
-        echo "s3fs#$bucketName $userHomePath/$userName/$bucketName fuse _netdev,allow_other,nodnscache,retries=5 0 0" >> /etc/fstab
+        echo "$MSG_MOUNT_FAIL"
+    fi
 
-        # DISABLE PERMISSION OF WRITE ON USER HOME FTP
-        chmod 0555 "$userHomePath/$userName/"
-
-        # CHECK IF IS MOUNTED
-        echo "[!] - Checking if is mounted"
-        if df -h | grep -q "$userHomePath/$userName/$bucketName"; then
-            echo "[+] - Bucket for $userName was mounted correctly"
-        else
-            echo "[!] - Warning, bucket for $userName NOT MOUNTED, ask to sysadmin to check it"
-        fi
-
-        log_files  # Create log files
-        create_welcome_file  # Create welcome file
-
-        echo -e "[+] - All Done.\n"
-
-        # CHECK IF FTP HAS ENABLED
-        if [[ -e "/etc/vsftpd/user_list" ]]; then
-            if ! grep -q "$userName" /etc/vsftpd/user_list; then
-                echo "[+] - Enabling FTP for $userName"
-                echo "$userName" >> /etc/vsftpd/user_list
-                systemctl restart vsftpd
-            else
-                echo "[!] - User already has FTP enabled"
-            fi
+    # Auto Enable FTP if User List exists
+    if [[ -f "/etc/vsftpd/user_list" ]]; then
+        if ! grep -q "$userName" /etc/vsftpd/user_list; then
+            echo "$MSG_FTP_ENABLE $userName"
+            echo "$userName" >> /etc/vsftpd/user_list
+            systemctl restart vsftpd
         fi
     fi
 }
 
-# Remove bucket function
+# Remove Bucket Function
 function remove_bucket() {
-    echo -e "\n[!] - Remove bucket process\n"
-    read -rp "Insert username to remove bucket: " userBucketNameRemove
-    echo "[!] - Searching bucket for user $userBucketNameRemove ...."
-    echo -e "\n"; grep "$userBucketNameRemove" "$userHomePath/buckets3.log"; echo -e "\n"
-
-    if [[ -z $userBucketNameRemove ]]; then
-        echo "[!] - $userBucketNameRemove not found. Please inform PATH of bucket"
-    else
-        echo "[+] - Bucket for $userBucketNameRemove was found"
+    echo "$MSG_REMOVE_TITLE"
+    
+    # Show active buckets from log
+    if [[ -f "$LOG_MASTER" ]]; then
+        echo "--- Active Buckets Log ---"
+        tail -n 10 "$LOG_MASTER"
+        echo "--------------------------"
     fi
 
-    read -rp "Insert Bucket Path: " userBucketPathRemove
-    echo "[+] - Checking if is mounted"
-    df -h | grep "$userBucketPathRemove"
+    read -r -p "$MSG_REMOVE_USER" rUser
+    read -r -p "$MSG_REMOVE_PATH" rPath
 
-    if [[ -n $userBucketPathRemove ]]; then
-        # UMOUNT BUCKET
-        umount -l "$userBucketPathRemove"
-        echo "[+] - Bucket located on $userBucketPathRemove was stopped"
-        df -h | grep "$userBucketPathRemove"
-
-        # REMOVING ON LOGS
-        getBucketRemoveLog=$(echo "$userBucketPathRemove" | sed -e 's/\//\\\//g')
-        sed -i "/$getBucketRemoveLog=/d" "$userHomePath/buckets3.log"
-
-        # REMOVING ON FSTAB
-        getBucketRemoveFSTab=$(echo "$userBucketPathRemove" | sed -e 's/\//\\\//g') # CONVERT / to \/ for sed work correctly
-        sed -i "/$getBucketRemoveFSTab/d" /etc/fstab
-    else
-        echo "[!] - Bucket $userBucketPathRemove not found"
+    if [[ -z "$rPath" ]]; then
+        echo "$MSG_ERR_EMPTY"
+        exit 1
     fi
+
+    # Unmount
+    if grep -qs "$rPath" /proc/mounts; then
+        umount -l "$rPath"
+        echo "$MSG_REMOVE_FOUND"
+    else
+        echo "[!] Path not mounted or invalid."
+    fi
+
+    # Clean Fstab (using | as delimiter for sed to handle paths)
+    sed -i "\|$rPath|d" /etc/fstab
+    
+    # Clean Logs
+    sed -i "\|$rPath|d" "$LOG_MASTER"
+
+    echo "$MSG_REMOVE_CLEAN"
 }
 
-# Install FTP function
+# FTP Install Function
 function install_ftp() {
-    # CHECK IF WAS INSTALLED
+    echo "$MSG_FTP_INSTALL"
+    
     if ! rpm -q vsftpd &>/dev/null; then
-        echo -e "[!] - Installing FTP"
         yum install -y vsftpd
+        
+        # Backup config
+        cp /etc/vsftpd/vsftpd.conf /etc/vsftpd/vsftpd.conf.bak
+        
+        # Configure
         sed -i 's/anonymous_enable=YES/anonymous_enable=NO/g' /etc/vsftpd/vsftpd.conf
+        
+        # Get External IP
+        IP=$(curl -s --connect-timeout 5 ifconfig.me)
+        
+        # Append Config
         cat <<EOF >> /etc/vsftpd/vsftpd.conf
 
 pasv_enable=YES
 pasv_min_port=1024
 pasv_max_port=1048
 userlist_deny=NO
-pasv_address=CHANGE_HERE_IP
+chroot_local_user=YES
+pasv_address=$IP
 EOF
 
-        # GET PUBLICIP
-        IP=$(curl --silent http://ipecho.net/plain)
-        sed -i "s/pasv_address=CHANGE_HERE_IP/pasv_address=$IP/g" /etc/vsftpd/vsftpd.conf
-        sed -i "s/#chroot_local_user=YES/chroot_local_user=YES/g" /etc/vsftpd/vsftpd.conf
         systemctl restart vsftpd
         systemctl enable vsftpd
+        echo "$MSG_DONE IP: $IP"
     else
-        echo "FTP already installed"
+        echo "VSFTPD $MSG_INSTALLED"
     fi
 }
 
-# Main script
+# Main Execution
 case $1 in
-    "-i"|"--install")
-        install_s3fs "$@"
-        ;;
-    "-e"|"--enable")
-        enable_bucket
-        ;;
-    "-r"|"--remove")
-        remove_bucket
-        ;;
-    "-ftp"|"--ftp")
-        install_ftp
-        ;;
-    *)
-        echo "Invalid option. Use -h or --help for usage information."
-        exit 1
-        ;;
+    "-i"|"--install") install_s3fs "$@" ;;
+    "-e"|"--enable")  enable_bucket ;;
+    "-r"|"--remove")  remove_bucket ;;
+    "-ftp"|"--ftp")   install_ftp ;;
+    *) display_help ;;
 esac
-
