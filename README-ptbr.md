@@ -100,14 +100,14 @@ s3bucket -ftp
 
 <img src="http://i.imgur.com/R35QWtp.png" />
 
-## ⚠️ Disclaimer
+## ⚠️ Aviso Legal
 
 > [!WARNING]
-> Este software é fornecido "tal como está". Certifique-se sempre executar em ambiente de testes antes. O autor não se responsabiliza por qualquer uso indevido, consequências legais ou impacto nos dados causados ​​por esta ferramenta.
+> Este software é fornecido "como está". Certifique-se sempre de testar primeiro em um ambiente de desenvolvimento. O autor não se responsabiliza por qualquer uso indevido, consequências legais ou impacto em dados causado por esta ferramenta.
 
 ## 📚 Tutorial Detalhado
 
-Para um guia completo, passo a passo, sobre como importar os arquivos gerados para o Thunderbird e solucionar problemas comuns de migração, confira meu artigo completo:
+Para um guia completo, passo a passo, confira meu artigo completo:
 
 👉 [**Create a Bucket for AWSS3 in your server**](https://perciocastelo.com.br/blog/create-a-bucket-for-aswss3-in-your-server.html)
 
