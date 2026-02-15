@@ -106,11 +106,11 @@ s3bucket -ftp
 ## ⚠️ Legal Notice
 
 > [!WARNING]
-> This software is provided "as is". Always make sure to run it in a testing environment first. The author is not responsible for any misuse, legal consequences, or data impact caused by this tool.
+> This software is provided "as is". Always make sure to test first in a development environment. The author is not responsible for any misuse, legal consequences, or data impact caused by this tool.
 
 ## 📚 Detailed Tutorial
 
-For a complete, step-by-step guide on how to import the generated files into Thunderbird and troubleshoot common migration issues, check out my full article:
+For a complete, step-by-step guide, check out my full article:
 
 👉 [**Create a Bucket for AWSS3 on your server**](https://perciocastelo.com.br/blog/create-a-bucket-for-aswss3-in-your-server.html)
 
