@@ -4,7 +4,7 @@ Readme: [English](README.md)
 
 Este repositório fornece um script automatizado e um guia prático para montar buckets do Amazon S3 como sistemas de arquivos locais no Linux, utilizando o s3fs-fuse. Transforme seu armazenamento em nuvem em um diretório local acessível.
 
-<img src="https://github.com/user-attachments/assets/be8fea2b-bf54-4536-a2e7-0cccd91c8d8c" width="700">
+<img src="amazon-fuse-s3-cover.webp" width="700">
 
 ![License](https://img.shields.io/github/license/sr00t3d/amazon-fuse-s3)
 ![Shell Script](https://img.shields.io/badge/shell-script-green)
