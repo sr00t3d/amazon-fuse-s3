@@ -1,13 +1,13 @@
 # AWS S3 FUSE Mount 🚀📦
 
-Read me: [Português](README-ptbr.md)
-
-This repository provides an automated script and a practical guide to mount Amazon S3 buckets as local file systems on Linux, using s3fs-fuse. Turn your cloud storage into an accessible local directory.
-
-<img src="amazon-fuse-s3-cover.webp" width="700">
+Read me: [BR](README-ptbr.md)
 
 ![License](https://img.shields.io/github/license/sr00t3d/amazon-fuse-s3)
 ![Shell Script](https://img.shields.io/badge/shell-script-green)
+
+<img src="amazon-fuse-s3-cover.webp" width="700">
+
+This repository provides an automated script and a practical guide to mount Amazon S3 buckets as local file systems on Linux, using s3fs-fuse. Turn your cloud storage into an accessible local directory.
 
 ## ✨ Features
 
@@ -106,7 +106,7 @@ s3bucket -ftp
 ## ⚠️ Legal Notice
 
 > [!WARNING]
-> This software is provided "as is". Always make sure to test first in a development environment. The author is not responsible for any misuse, legal consequences, or data impact caused by this tool.
+> This software is provided "as is." Always ensure you have explicit permission before executing it. The author is not responsible for any misuse, legal consequences, or data impact caused by this tool.
 
 ## 📚 Detailed Tutorial
 

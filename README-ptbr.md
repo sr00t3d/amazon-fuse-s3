@@ -1,13 +1,13 @@
 # AWS S3 FUSE Mount 🚀📦
 
-Readme: [English](README.md)
-
-Este repositório fornece um script automatizado e um guia prático para montar buckets do Amazon S3 como sistemas de arquivos locais no Linux, utilizando o s3fs-fuse. Transforme seu armazenamento em nuvem em um diretório local acessível.
-
-<img src="amazon-fuse-s3-cover.webp" width="700">
+Readme: [EN](README.md)
 
 ![License](https://img.shields.io/github/license/sr00t3d/amazon-fuse-s3)
 ![Shell Script](https://img.shields.io/badge/shell-script-green)
+
+<img src="amazon-fuse-s3-cover.webp" width="700">
+
+Este repositório fornece um script automatizado e um guia prático para montar buckets do Amazon S3 como sistemas de arquivos locais no Linux, utilizando o s3fs-fuse. Transforme seu armazenamento em nuvem em um diretório local acessível.
 
 ## ✨ Funcionalidades
 
@@ -103,9 +103,9 @@ s3bucket -ftp
 ## ⚠️ Aviso Legal
 
 > [!WARNING]
-> Este software é fornecido "como está". Certifique-se sempre de testar primeiro em um ambiente de desenvolvimento. O autor não se responsabiliza por qualquer uso indevido, consequências legais ou impacto em dados causado por esta ferramenta.
+> Este software é fornecido "tal como está". Certifique-se sempre de ter permissão explícita antes de executar. O autor não se responsabiliza por qualquer uso indevido, consequências legais ou impacto nos dados causados ​​por esta ferramenta.
 
-## 📚 Tutorial Detalhado
+## 📚 Detailed Tutorial
 
 Para um guia completo, passo a passo, confira meu artigo completo:
 

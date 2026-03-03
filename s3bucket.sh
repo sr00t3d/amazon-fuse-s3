@@ -1,17 +1,16 @@
-#!/bin/bash
-################################################################################
-#                                                                              #
-#   PROJECT: S3 Fuse & VSFTPD Manager                                          #
-#   VERSION: 3.0.0                                                             #
-#                                                                              #
-#   AUTHOR:  Percio Andrade                                                    #
-#   CONTACT: percio@evolya.com.br                                              #
-#   WEB:     https://perciocastelo.com.br | contato@perciocastelo.com.br       #
-#                                                                              #
-#   INFO:                                                                      #
-#   Install s3fs-fuse, create buckets/users and setup VSFTPD.                  #
-#                                                                              #
-################################################################################
+#!/usr/bin/env bash
+# ╔═══════════════════════════════════════════════════════════════════════════╗
+# ║                                                                           ║
+# ║   S3 Fuse & VSFTP Manager v3.0.0                                          ║
+# ║                                                                           ║
+# ╠═══════════════════════════════════════════════════════════════════════════╣
+# ║   Autor:   Percio Castelo                                                 ║
+# ║   Contato: percio@evolya.com.br | contato@perciocastelo.com.br            ║
+# ║   Web:     https://perciocastelo.com.br                                   ║
+# ║                                                                           ║
+# ║   Função:  Install s3fs-fuse, create buckets/users and setup VSFTPD.      ║
+# ║                                                                           ║
+# ╚═══════════════════════════════════════════════════════════════════════════╝
 
 # --- CONFIGURATION ---
 SRC_PATH="/usr/local/src"
